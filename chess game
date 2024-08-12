@@ -1,0 +1,136 @@
+class ChessBoard:
+    def __init__(self):
+        self.board = [
+            ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'],
+            ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+            ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+            ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r']
+        ]
+        self.current_turn = 'white'
+        self.castling = {'white': {'kingside': True, 'queenside': True}, 'black': {'kingside': True, 'queenside': True}}
+        self.en_passant = None
+
+    def print_board(self):
+        for row in self.board:
+            print(' '.join(row))
+        print()
+
+    def move_piece(self, start, end):
+        x1, y1 = start
+        x2, y2 = end
+        piece = self.board[x1][y1]
+
+        if piece == ' ':
+            print("No piece to move!")
+            return False
+
+        if (self.current_turn == 'white' and piece.islower()) or (self.current_turn == 'black' and piece.isupper()):
+            print("Not your turn!")
+            return False
+
+        if end in self.get_valid_moves(start):
+            self.board[x2][y2] = piece
+            self.board[x1][y1] = ' '
+
+            # Check for castling
+            if piece.lower() == 'k':
+                if start == (7, 4) and end == (7, 6):  # White kingside castling
+                    self.board[7][7] = ' '
+                    self.board[7][5] = 'R'
+                elif start == (7, 4) and end == (7, 2):  # White queenside castling
+                    self.board[7][0] = ' '
+                    self.board[7][3] = 'R'
+                elif start == (0, 4) and end == (0, 6):  # Black kingside castling
+                    self.board[0][7] = ' '
+                    self.board[0][5] = 'r'
+                elif start == (0, 4) and end == (0, 2):  # Black queenside castling
+                    self.board[0][0] = ' '
+                    self.board[0][3] = 'r'
+                self.castling[self.current_turn]['kingside'] = False
+                self.castling[self.current_turn]['queenside'] = False
+            elif piece.lower() == 'r':
+                if start == (7, 0) or start == (0, 0):
+                    self.castling[self.current_turn]['queenside'] = False
+                elif start == (7, 7) or start == (0, 7):
+                    self.castling[self.current_turn]['kingside'] = False
+
+            # Check for pawn promotion
+            if piece.lower() == 'p' and (x2 == 0 or x2 == 7):
+                promotion_piece = input("Pawn promotion! Choose a piece (Q, R, B, N): ").upper()
+                while promotion_piece not in ['Q', 'R', 'B', 'N']:
+                    promotion_piece = input("Invalid choice. Choose a piece (Q, R, B, N): ").upper()
+                self.board[x2][y2] = promotion_piece if self.current_turn == 'white' else promotion_piece.lower()
+
+            self.current_turn = 'white' if self.current_turn == 'black' else 'black'
+            return True
+        else:
+            print("Invalid move!")
+            return False
+
+    def get_valid_moves(self, start):
+        x, y = start
+        piece = self.board[x][y]
+        if piece == ' ':
+            return []
+        
+        piece_type = piece.lower()
+        valid_moves = []
+
+        if piece_type == 'p':
+            direction = -1 if piece.isupper() else 1
+            if 0 <= x + direction < 8:
+                if self.board[x + direction][y] == ' ':
+                    valid_moves.append((x + direction, y))
+                    if (x == 6 and piece.isupper()) or (x == 1 and piece.islower()):
+                        if self.board[x + 2 * direction][y] == ' ':
+                            valid_moves.append((x + 2 * direction, y))
+                for dy in [-1, 1]:
+                    if 0 <= y + dy < 8 and self.board[x + direction][y + dy] != ' ':
+                        if (self.board[x + direction][y + dy].isupper() and piece.islower()) or \
+                           (self.board[x + direction][y + dy].islower() and piece.isupper()):
+                            valid_moves.append((x + direction, y + dy))
+
+        # Add logic for other pieces (Rook, Knight, Bishop, Queen, King)
+
+        return valid_moves
+
+
+def game_over(board):
+    # Add logic to check for checkmate or stalemate
+    return False
+
+
+def main():
+    board = ChessBoard()
+    while not game_over(board):
+        board.print_board()
+        move = input(f"{board.current_turn}'s turn. Enter move (e.g., 'e2 e4'): ").strip().lower()
+        
+        # Debug: Show the entered move
+        print(f"Entered move: '{move}'")
+
+        # Check if the input is in the correct format
+        if len(move) != 5 or move[0] not in 'abcdefgh' or move[1] not in '12345678' or move[2] != ' ' or move[3] not in 'abcdefgh' or move[4] not in '12345678':
+            print("Invalid input format. Please enter two coordinates separated by a space (e.g., 'e2 e4').")
+            continue
+        
+        # Debug: Show the parsed coordinates
+        print(f"Parsed start: '{move[0:2]}' to '{(8 - int(move[1]), ord(move[0]) - ord('a'))}'")
+        print(f"Parsed end: '{move[3:5]}' to '{(8 - int(move[4]), ord(move[3]) - ord('a'))}'")
+        
+        start = (8 - int(move[1]), ord(move[0]) - ord('a'))
+        end = (8 - int(move[4]), ord(move[3]) - ord('a'))
+
+        if board.move_piece(start, end):
+            print("Valid move.")
+        else:
+            print("Invalid move. Try again.")
+
+    print("Game Over")
+if __name__ == "__main__":
+    main()
+
